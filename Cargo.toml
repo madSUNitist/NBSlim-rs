@@ -14,7 +14,7 @@ license = "MIT"
 repository = "https://github.com/madSUNitist/NBSlim-rs"
 documentation = "https://docs.rs/nbslim"
 homepage = "https://github.com/madSUNitist/NBSlim-rs#readme"
-readme = "https://github.com/madSUNitist/NBSlim-rs/blob/main/README.md"
+readme = "README.md"
 authors = ["madSUNitist"]
 
 [lib]
