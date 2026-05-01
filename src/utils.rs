@@ -7,7 +7,7 @@ use crate::tec::TranslationalEquivalence;
 
 
 const PITCH_BITS: u32 = 14;
-const OFFSET: u32 = 1200;
+const OFFSET: i16 = 1200;
 
 /// Converts a list of MIDI‑like note events into 2D points for compression,
 /// along with a mapping from each point back to **all** original note data
@@ -35,22 +35,22 @@ const OFFSET: u32 = 1200;
 ///
 /// let notes = vec![(0, 0, 1, 60, 100, 0, 0)];
 /// let (points, mapping) = notes_to_points(&notes);
-/// assert_eq!(points.len(), 1);
-/// assert_eq!(mapping.len(), 1);
+/// assert_eq!(points, vec![(0, 23584)]);
+/// assert_eq!(mapping.get(&(0, 23584)).unwrap()[0], (0, 0, 1, 60, 100, 0, 0));
 /// ```
 pub fn notes_to_points(
-    notes: &Vec<(usize, usize, usize, usize, usize, i64, i64)>,
+    notes: &Vec<(u32, u8, u8, u8, u8, i8, i16)>,
 ) -> (
     Vec<(u32, u32)>,
-    HashMap<(u32, u32), Vec<(usize, usize, usize, usize, usize, i64, i64)>>,
+    HashMap<(u32, u32), Vec<(u32, u8, u8, u8, u8, i8, i16)>>,
 ) {
     let mut points = Vec::new();
     let mut mapping = HashMap::new();
 
     for &(tick, layer, instrument, key, velocity, panning, pitch) in notes {
-        let pitch_cents = ((key * 100) as i64 + pitch) as u32;
+        let pitch_cents = (key as i16) * 100 + pitch;
         let pitch_off = pitch_cents + OFFSET;
-        let encoded_y = ((instrument as u32) << PITCH_BITS) | pitch_off;
+        let encoded_y = ((instrument as u32) << PITCH_BITS) | (pitch_off as u32);
         let point = (tick as u32, encoded_y);
         points.push(point);
         mapping
@@ -219,8 +219,8 @@ pub fn compression_stats(
 /// ```
 pub fn points_to_notes(
     tecs: &Vec<TranslationalEquivalence>,
-    mapping: &HashMap<(u32, u32), Vec<(usize, usize, usize, usize, usize, i64, i64)>>,
-) -> Vec<(usize, usize, usize, usize, usize, i64, i64)> {
+    mapping: &HashMap<(u32, u32), Vec<(u32, u8, u8, u8, u8, i8, i16)>>,
+) -> Vec<(u32, u8, u8, u8, u8, i8, i16)> {
     // 1. Rebuild the unique points covered by all TECs (sorted)
     let mut all_points = HashSet::new();
     for tec in tecs {
