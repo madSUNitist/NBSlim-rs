@@ -1,4 +1,4 @@
-English | [简体中文](README.zh.md)
+[English](README.md) | 简体中文
 
 # NBSlim
 
@@ -6,22 +6,20 @@ English | [简体中文](README.zh.md)
 [![Crates.io](https://img.shields.io/crates/v/nbslim.svg)](https://crates.io/crates/nbslim)
 [![Rust](https://img.shields.io/badge/rust-1.95.0%2B-blue.svg)](https://www.rust-lang.org)
 
-Rust implementation of SIA, SIATEC, COSIATEC, and RecurSIA – algorithms for compressing 2D point sets by discovering **translational equivalence classes (TECs)**. Designed for compressing Note Block Studio (.nbs) music files, but works on any set of points in the plane.
+SIA、SIATEC、COSIATEC 和 RecurSIA 算法的 Rust 实现，通过发现**平移等价类（TEC）**来压缩二维点集。专为压缩 Note Block Studio (.nbs) 音乐文件设计，但也适用于平面上的任意点集。
 
-This crate is the core algorithm implementation extracted from the [NBSlim](https://github.com/madSUNitist/NBSlim) Python package, released independently for Rust projects.
+这个 crate 是从 [NBSlim](https://github.com/madSUNitist/NBSlim) Python 包中提取的核心算法实现，作为独立的 Rust crate 发布。
 
 ## Algorithms
 
-- **SIA** – finds all maximal translatable patterns from a point set.
-- **SIATEC** – builds translational equivalence classes from SIA results.
-- **COSIATEC** – greedy lossless compression: repeatedly extract the best TEC (highest compression ratio) and remove its covered points.
-- **RecurSIA** – recursive version of COSIATEC that compresses patterns of each TEC, capturing nested repetitions.
+- **SIA** – 从点集中找出所有最大可平移模式。
+- **SIATEC** – 根据 SIA 的结果构建平移等价类。
+- **COSIATEC** – 贪心无损压缩：重复提取最佳 TEC（压缩比最高），并移除其覆盖的点。
+- **RecurSIA** – COSIATEC 的递归版本，对每个 TEC 的模式进一步压缩，捕捉嵌套重复。
 
-All algorithms are implemented with `O(n²)` time complexity and use online HashMap aggregation to avoid storing all point pairs, making them memory efficient for large inputs.
+所有算法均实现为 O(n²) 时间复杂度，并使用在线 HashMap 聚合避免存储所有点对，从而在大规模输入下保持内存高效。
 
 ## Installation
-
-Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]

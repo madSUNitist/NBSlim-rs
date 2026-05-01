@@ -7,7 +7,8 @@ const PITCH_BITS: u32 = 14;
 const OFFSET: u32 = 1200;
 
 /// Converts a list of MIDI-like note events into 2D points for compression,
-/// along with a mapping from each point back to its original note data.
+/// along with a mapping from each point back to **all** original note data
+/// that share that exact point (i.e., a multi‑set).
 ///
 /// The y-coordinate is encoded as:
 ///   `(instrument << PITCH_BITS) | (pitch_in_cents + OFFSET)`
@@ -15,26 +16,22 @@ const OFFSET: u32 = 1200;
 /// The x-coordinate is simply the tick (time) value.
 ///
 /// # Arguments
-/// * `notes` - A slice of tuples where each tuple represents a note event:
+/// * `notes` - A slice of tuples representing note events:
 ///   `(tick, layer, instrument, key, velocity, panning, pitch)`
-///
-///   - `tick`:      time in ticks (`usize`)
-///   - `layer`:     layer index (`usize`)
-///   - `instrument`: instrument ID (`usize`)
-///   - `key`:       MIDI key number (0–127, `usize`)
-///   - `velocity`:  note velocity (`usize`)
-///   - `panning`:   panning value (`i64`)
-///   - `pitch`:     pitch bend offset in cents (`i64`)
 ///
 /// # Returns
 /// A tuple `(points, mapping)` where:
-/// - `points`: `Vec<(u32, u32)>` – the generated 2D points `(tick, encoded_y)`.
-/// - `mapping`: `HashMap<(u32, u32), (usize, usize, usize, usize, usize, i64, i64)>`
-///   that maps each point back to the original note data.
+/// - `points`: `Vec<(u32, u32)>` – the generated 2D points `(tick, encoded_y)`,
+///   with possible duplicates.
+/// - `mapping`: `HashMap<(u32, u32), Vec<NoteData>>` mapping a point to all
+///   original notes that produced it, in the order encountered.
 pub fn notes_to_points(
-    notes: &Vec<(usize, usize, usize, usize, usize, i64, i64)>
-) -> (Vec<(u32, u32)>, HashMap<(u32, u32), (usize, usize, usize, usize, usize, i64, i64)>) {
-    let mut points: Vec<_> = Vec::new();
+    notes: &Vec<(usize, usize, usize, usize, usize, i64, i64)>,
+) -> (
+    Vec<(u32, u32)>,
+    HashMap<(u32, u32), Vec<(usize, usize, usize, usize, usize, i64, i64)>>,
+) {
+    let mut points = Vec::new();
     let mut mapping = HashMap::new();
 
     for &(tick, layer, instrument, key, velocity, panning, pitch) in notes {
@@ -43,7 +40,10 @@ pub fn notes_to_points(
         let encoded_y = ((instrument as u32) << PITCH_BITS) | pitch_off;
         let point = (tick as u32, encoded_y);
         points.push(point);
-        mapping.insert(point, (tick, layer, instrument, key, velocity, panning, pitch));
+        mapping
+            .entry(point)
+            .or_insert_with(Vec::new)
+            .push((tick, layer, instrument, key, velocity, panning, pitch));
     }
 
     (points, mapping)
@@ -129,26 +129,52 @@ pub fn compression_stats(
     (original, encoded, ratio)
 }
 
-/// Reconstructs the original set of points from a list of TECs.
+/// Reconstructs the original set of points from a list of TECs, then maps
+/// each point back to its original note data using a pre‑built mapping.
 ///
-/// The reconstruction takes the coverage (pattern + all translated copies)
-/// of each TEC, merges them, and returns the sorted list of unique points.
-/// This is the inverse operation of a lossless compression pipeline that
-/// decomposes a point set into TECs.
+/// The reconstruction first computes the coverage (pattern + all translated copies)
+/// of each TEC, merges them, and returns the **sorted unique** points.
+/// Then, for each such point, it retrieves all notes associated with it
+/// from the mapping (in the order they were originally inserted) and flattens
+/// them into the result vector.
+///
+/// **Important:** This function assumes that the total number of times a point
+/// appears in the compressed representation is exactly the number of notes
+/// stored in the mapping for that point. Because the compression process does
+/// not preserve duplicate points, the final note order is deterministic but
+/// may not match the original order across different points. For exact order
+/// preservation, you must maintain an auxiliary index sequence.
 ///
 /// # Arguments
 /// * `tecs` - A vector of `TranslationalEquivalence` objects, typically produced
-///            by a compression algorithm (e.g., COSIATEC, SIATECCompress).
+///            by a compression algorithm.
+/// * `mapping` - The mapping from a point to all original notes that produced it,
+///               as returned by `notes_to_points`.
 ///
 /// # Returns
-/// A sorted `Vec<(u32, u32)>` containing all points that were covered by the
-/// input TECs, with duplicates removed.
-pub fn rebuild(tecs: Vec<TranslationalEquivalence>) -> Vec<(u32, u32)> {
+/// A `Vec` of original note tuples, in the order: first all notes belonging to
+/// the smallest (tick, y) point (sorted), then the next point, etc. Notes that
+/// shared the exact same point are returned in the insertion order recorded in
+/// the mapping.
+pub fn points_to_notes(
+    tecs: &Vec<TranslationalEquivalence>,
+    mapping: &HashMap<(u32, u32), Vec<(usize, usize, usize, usize, usize, i64, i64)>>,
+) -> Vec<(usize, usize, usize, usize, usize, i64, i64)> {
+    // 1. Rebuild the unique points covered by all TECs (sorted)
     let mut all_points = HashSet::new();
     for tec in tecs {
         all_points.extend(tec.coverage());
     }
-    let mut result: Vec<_> = all_points.into_iter().collect();
+
+    // 2. For each unique point, collect all original notes from the mapping
+    let mut result = Vec::new();
+    for point in all_points {
+        if let Some(notes_at_point) = mapping.get(&point) {
+            result.extend(notes_at_point.iter().cloned());
+        }
+        // If a point from coverage is not present in mapping (should never happen),
+        // we simply skip it – it indicates an inconsistency.
+    }
     result.sort();
     result
 }
