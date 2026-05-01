@@ -88,32 +88,3 @@ use nbslim::compression_stats;
 let (original_count, encoded_units, ratio) = compression_stats(&tecs, &points);
 println!("Original: {}, Encoded units: {}, Ratio: {:.2}", original_count, encoded_units, ratio);
 ```
-
-## API Reference
-
-| Function | Description |
-|----------|-------------|
-| `find_mtps(dataset, restrict_dpitch_zero)` | Returns all maximal translatable patterns as `HashMap<(i32,i32), Vec<(u32,u32)>>` |
-| `build_tecs_from_mtps(dataset, restrict_dpitch_zero)` | Builds `Vec<TranslationalEquivalence>` from MTPs |
-| `cosiatec_compress(dataset, restrict_dpitch_zero)` | Greedy compression, returns `Vec<TranslationalEquivalence>` |
-| `recursive_cosiatec_compress(dataset, restrict_dpitch_zero, min_pattern_size)` | Recursive version (RecurSIA) |
-| `merge_tecs(tecs, filter)` | Merges TECs that satisfy `filter` into a single TEC (useful for small leftovers) |
-| `compression_stats(tecs, original_points)` | Returns `(original_count, encoded_units, compression_ratio)` |
-| `rebuild(tecs)` | Recovers the original point set from a list of TECs |
-
-### Struct `TranslationalEquivalence`
-
-- `pattern: Vec<(u32, u32)>`
-- `translators: HashSet<(i32, i32)>`
-- `sub_tecs: Vec<TranslationalEquivalence>`
-- `coverage(&self) -> HashSet<(u32, u32)>`
-- `compression_ratio(&self) -> f64`
-- `compactness(&self, dataset: &HashSet<(u32, u32)>) -> f64`
-- `summary(&self, indent: usize) -> String`
-
-## References
-
-1. Meredith, D., Lemström, K., & Wiggins, G. A. (2002). *Algorithms for discovering repeated patterns in multidimensional representations of polyphonic music.*
-2. Meredith, D. (2013). *COSIATEC and SIATECCompress: Pattern discovery by geometric compression.*
-3. Meredith, D. (2019). *RecurSIA-RRT: Recursive translatable point-set pattern discovery with removal of redundant translators.* arXiv:1906.12286.
-# NBSlim-rs
