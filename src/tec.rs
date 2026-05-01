@@ -105,8 +105,8 @@ impl TranslationalEquivalence {
     /// let mut translators = HashSet::new();
     /// translators.insert((2, 0));
     /// let tec = TranslationalEquivalence::new(pattern, translators, None);
-    /// // coverage size = 3, units = 2 (pattern) + 1 (translator) = 3, ratio = 1.0
-    /// assert!((tec.compression_ratio() - 1.0).abs() < 1e-6);
+    /// // coverage size = 4, units = 2 (pattern) + 1 (translator) = 3, ratio = 1.3333...
+    /// assert!((tec.compression_ratio() - 4.0 / 3.0).abs() < 1e-6);
     /// ```
     pub fn compression_ratio(&self) -> f64 {
         fn total_encoding_units(tec: &TranslationalEquivalence) -> usize {
