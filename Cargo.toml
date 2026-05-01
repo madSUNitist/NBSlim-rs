@@ -1,0 +1,26 @@
+[package]
+name = "nbslim"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95.0"
+
+description = """
+Rust implementation of SIA, SIATEC, COSIATEC, and RecurSIA algorithms for
+compressing Note Block Studio (.nbs) music files by discovering translational
+equivalence classes in 2D point sets.
+"""
+
+license = "MIT"
+repository = "https://github.com/madSUNitist/NBSlim-rs"
+documentation = "https://docs.rs/nbslim"
+homepage = "https://github.com/madSUNitist/NBSlim-rs#readme"
+readme = "https://github.com/madSUNitist/NBSlim-rs/README.md"
+authors = ["madSUNitist"]
+
+[lib]
+name = "nbslim"
+
+[dependencies]
+
+[dev-dependencies]
+serde_json = "1.0"
