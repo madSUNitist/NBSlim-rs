@@ -1,14 +1,15 @@
+//! SIA (Structure Induction Algorithm) – finds all maximal translatable patterns.
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 
 
 /// Finds all maximal translatable patterns (MTPs) in a 2‑D point set using the SIA algorithm.
 ///
-/// SIA (Structure Induction Algorithm) computes, for every non‑zero translation vector `v`,
-/// the set of start points `p` such that both `p` and `p + v` belong to the dataset.
-/// This set is the maximal translatable pattern for `v`. The algorithm groups all
-/// ordered point pairs `(p, q)` by the vector `q - p`, then collects the starting points
-/// for each vector.
+/// SIA computes, for every non‑zero translation vector `v`, the set of start points `p`
+/// such that both `p` and `p + v` belong to the dataset. This set is the maximal
+/// translatable pattern for `v`. The algorithm groups all ordered point pairs `(p, q)`
+/// by the vector `q - p`, then collects the starting points for each vector.
 ///
 /// # Arguments
 /// * `dataset` - A reference to a vector of `(tick, pitch)` points with non‑negative coordinates.
@@ -16,17 +17,23 @@ use std::collections::HashSet;
 ///   (i.e., purely temporal translations). This restricts patterns to horizontal repetition.
 ///
 /// # Returns
-/// A vector of `(vector, pattern)` entries, where:
-/// - `vector` is `(dtick, dpitch)` – the translation vector.
-/// - `pattern` is a sorted list of points that form the MTP for that vector.
+/// A `HashMap` mapping each translation vector `(dtick, dpitch)` to a `Vec` of start points
+/// that form the maximal translatable pattern for that vector. Vectors that have fewer than
+/// two start points are omitted, as a pattern must have at least one translation.
 ///
-/// The zero vector `(0, 0)` is always excluded. Vectors that map fewer than two points
-/// (i.e., pattern size < 2) are also omitted because a pattern must have at least one
-/// translation to be translatable.
+/// # Notes
+/// - The zero vector `(0, 0)` is always excluded.
+/// - The returned start points for each vector are sorted by `(tick, pitch)`.
+/// - Complexity: `O(n²)` time and memory in the worst case, where `n` is the number of points.
 ///
-/// # Complexity
-/// - Time: `O(n²)` in the worst case, where `n` is the number of points.
-/// - Memory: `O(n²)` in the worst case (stores a set of start points for each distinct vector).
+/// # Examples
+/// ```
+/// use nbslim::find_mtps;
+///
+/// let points = vec![(0, 0), (1, 0), (2, 0), (0, 1), (1, 1)];
+/// let mtps = find_mtps(&points, false);
+/// // mtps contains patterns for horizontal and diagonal repetitions.
+/// ```
 pub fn find_mtps(
     dataset: &Vec<(u32, u32)>, 
     restrict_dpitch_zero: bool

@@ -1,3 +1,6 @@
+//! Utility functions for converting between note events and points, merging TECs,
+//! computing compression statistics, and reconstructing original data.
+
 use std::collections::{HashMap, HashSet};
 
 use crate::tec::TranslationalEquivalence;
@@ -6,14 +9,14 @@ use crate::tec::TranslationalEquivalence;
 const PITCH_BITS: u32 = 14;
 const OFFSET: u32 = 1200;
 
-/// Converts a list of MIDI-like note events into 2D points for compression,
+/// Converts a list of MIDI‑like note events into 2D points for compression,
 /// along with a mapping from each point back to **all** original note data
 /// that share that exact point (i.e., a multi‑set).
 ///
-/// The y-coordinate is encoded as:
+/// The y‑coordinate is encoded as:
 ///   `(instrument << PITCH_BITS) | (pitch_in_cents + OFFSET)`
 /// This packs instrument ID and pitch offset into a single `u32` value.
-/// The x-coordinate is simply the tick (time) value.
+/// The x‑coordinate is simply the tick (time) value.
 ///
 /// # Arguments
 /// * `notes` - A slice of tuples representing note events:
@@ -25,6 +28,16 @@ const OFFSET: u32 = 1200;
 ///   with possible duplicates.
 /// - `mapping`: `HashMap<(u32, u32), Vec<NoteData>>` mapping a point to all
 ///   original notes that produced it, in the order encountered.
+///
+/// # Examples
+/// ```
+/// use nbslim::utils::notes_to_points;
+///
+/// let notes = vec![(0, 0, 1, 60, 100, 0, 0)];
+/// let (points, mapping) = notes_to_points(&notes);
+/// assert_eq!(points.len(), 1);
+/// assert_eq!(mapping.len(), 1);
+/// ```
 pub fn notes_to_points(
     notes: &Vec<(usize, usize, usize, usize, usize, i64, i64)>,
 ) -> (
@@ -49,10 +62,29 @@ pub fn notes_to_points(
     (points, mapping)
 }
 
-/// Merge all TECs that satisfy the filter into a single TEC containing all their coverage points.
+/// Merges all TECs that satisfy a predicate into a single TEC containing all their coverage points.
 ///
 /// The merged TEC has no translators (i.e., it is not a true TEC) and is used only for
 /// reconstruction. It helps avoid many tiny TECs that would each occupy a small layer block.
+///
+/// # Arguments
+/// * `tecs` - A vector of TECs to process.
+/// * `filter` - A function that returns `true` for TECs that should be merged.
+///
+/// # Returns
+/// A new vector of TECs where the filtered ones have been replaced by a single merged TEC
+/// (if any were merged), and all others are kept unchanged.
+///
+/// # Examples
+/// ```
+/// # use nbslim::TranslationalEquivalence;
+/// # use nbslim::utils::merge_tecs;
+/// # use std::collections::HashSet;
+/// let pattern = vec![(0, 0)];
+/// let tec = TranslationalEquivalence::new(pattern, HashSet::new(), None);
+/// let merged = merge_tecs(vec![tec], |t| t.coverage().len() == 1);
+/// assert_eq!(merged.len(), 1);
+/// ```
 pub fn merge_tecs(
     tecs: Vec<TranslationalEquivalence>, 
     filter: fn(&TranslationalEquivalence) -> bool
@@ -97,9 +129,26 @@ pub fn merge_tecs(
 }
 
 
-/// Calculate compression statistics for a list of TECs.
-/// 
-/// Returns a tuple: (original_count, encoded_units, compression_ratio):
+/// Calculates compression statistics for a list of TECs.
+///
+/// # Returns
+/// A tuple `(original_count, encoded_units, compression_ratio)` where:
+/// - `original_count` is the total number of points in the original dataset.
+/// - `encoded_units` is the number of units used in the compressed representation
+///   (pattern points + translators, or recursively the sum of sub‑TEC units).
+/// - `compression_ratio` is `original_count / encoded_units`. A ratio greater than 1
+///   indicates compression.
+///
+/// # Examples
+/// ```
+/// # use nbslim::TranslationalEquivalence;
+/// # use nbslim::utils::compression_stats;
+/// # use std::collections::HashSet;
+/// let points = vec![(0, 0), (1, 0)];
+/// let tecs = vec![TranslationalEquivalence::new(vec![(0, 0)], HashSet::new(), None)];
+/// let (orig, enc, ratio) = compression_stats(&tecs, &points);
+/// assert_eq!(orig, 2);
+/// ```
 pub fn compression_stats(
     tecs: &Vec<TranslationalEquivalence>, 
     original_points: &Vec<(u32, u32)>
@@ -153,9 +202,21 @@ pub fn compression_stats(
 ///
 /// # Returns
 /// A `Vec` of original note tuples, in the order: first all notes belonging to
-/// the smallest (tick, y) point (sorted), then the next point, etc. Notes that
+/// the smallest `(tick, y)` point (sorted), then the next point, etc. Notes that
 /// shared the exact same point are returned in the insertion order recorded in
 /// the mapping.
+///
+/// # Examples
+/// ```
+/// # use nbslim::TranslationalEquivalence;
+/// # use nbslim::utils::{notes_to_points, points_to_notes};
+/// # use std::collections::HashSet;
+/// let notes = vec![(0, 0, 1, 60, 100, 0, 0)];
+/// let (points, mapping) = notes_to_points(&notes);
+/// let tecs = vec![TranslationalEquivalence::new(points.clone(), HashSet::new(), None)];
+/// let reconstructed = points_to_notes(&tecs, &mapping);
+/// assert_eq!(reconstructed, notes);
+/// ```
 pub fn points_to_notes(
     tecs: &Vec<TranslationalEquivalence>,
     mapping: &HashMap<(u32, u32), Vec<(usize, usize, usize, usize, usize, i64, i64)>>,

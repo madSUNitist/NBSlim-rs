@@ -1,3 +1,5 @@
+//! Translational Equivalence Class (TEC) – the core data structure for pattern encoding.
+
 use std::fmt;
 use std::collections::HashSet;
 
@@ -9,6 +11,18 @@ use std::collections::HashSet;
 /// Translators are `(i32, i32)` vectors, possibly negative in either dimension.
 /// Sub‑TECs are used by recursive compression algorithms (RECURSIA) to encode
 /// nested patterns.
+///
+/// # Examples
+/// ```
+/// use std::collections::HashSet;
+/// use nbslim::TranslationalEquivalence;
+///
+/// let pattern = vec![(0, 0), (1, 0)];
+/// let mut translators = HashSet::new();
+/// translators.insert((1, 0)); // translation by one tick
+/// let tec = TranslationalEquivalence::new(pattern, translators, None);
+/// assert_eq!(tec.coverage().len(), 3); // pattern + translated copy
+/// ```
 #[derive(Debug, Clone, Eq)]
 pub struct TranslationalEquivalence {
     /// Sorted list of points `(tick, pitch)` forming the pattern.
@@ -46,9 +60,23 @@ impl TranslationalEquivalence {
         }
     }
 
-    /// Covered set = pattern ∪ (pattern + v) for every translator v.
-    /// 
     /// Returns the set of all points that belong to any occurrence in this TEC.
+    ///
+    /// The coverage includes:
+    /// - The pattern itself
+    /// - All translated copies: `pattern + v` for each `v` in `translators`
+    /// - If `sub_tecs` are present, their coverage is also included (merged).
+    ///
+    /// # Examples
+    /// ```
+    /// # use std::collections::HashSet;
+    /// # use nbslim::TranslationalEquivalence;
+    /// let pattern = vec![(0, 0)];
+    /// let mut translators = HashSet::new();
+    /// translators.insert((2, 0));
+    /// let tec = TranslationalEquivalence::new(pattern, translators, None);
+    /// assert_eq!(tec.coverage().len(), 2); // points (0,0) and (2,0)
+    /// ```
     pub fn coverage(&self) -> HashSet<(u32, u32)> {
         let mut sub_cov: HashSet<(u32, u32)> = self.pattern.iter().copied().collect();
         for sub in &self.sub_tecs {
@@ -64,9 +92,22 @@ impl TranslationalEquivalence {
         cov
     }
 
-    /// Recursive compression ratio = coverage size / total encoding units.
-    /// - For a leaf TEC (no sub_tecs), total = |pattern| + |translators|.
-    /// - For a non-leaf TEC, total = |translators| + sum(compression units of sub_tecs).
+    /// Recursive compression ratio: coverage size / total encoding units.
+    ///
+    /// For a leaf TEC (no `sub_tecs`), total units = `|pattern| + |translators|`.
+    /// For a non‑leaf TEC, total units = `|translators| + sum(units of sub_tecs)`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use nbslim::TranslationalEquivalence;
+    /// # use std::collections::HashSet;
+    /// let pattern = vec![(0, 0), (1, 0)];
+    /// let mut translators = HashSet::new();
+    /// translators.insert((2, 0));
+    /// let tec = TranslationalEquivalence::new(pattern, translators, None);
+    /// // coverage size = 3, units = 2 (pattern) + 1 (translator) = 3, ratio = 1.0
+    /// assert!((tec.compression_ratio() - 1.0).abs() < 1e-6);
+    /// ```
     pub fn compression_ratio(&self) -> f64 {
         fn total_encoding_units(tec: &TranslationalEquivalence) -> usize {
             if tec.sub_tecs.is_empty() {
@@ -85,14 +126,18 @@ impl TranslationalEquivalence {
         return cov_len as f64 / total_units as f64;
     }
 
-    /// Bounding‑box compactness: |pattern| divided by the number of dataset points
-    /// that lie inside the axis‑aligned bounding box of the pattern.
-    /// - If sub_tecs exist, merge all leaf pattern points from the subtree,
-    /// then compute compactness of that merged point set.
-    /// - Otherwise, compute compactness from self.pattern directly.
+    /// Compactness: the proportion of points inside the pattern’s bounding box that belong to the pattern.
     ///
-    /// Higher compactness means the pattern occupies a relatively dense region of
-    /// the dataset. This Python‑exposed method clones the input set.
+    /// More precisely: `|pattern| / (number of dataset points lying inside the pattern’s axis‑aligned bounding box)`.
+    ///
+    /// If sub‑TECs exist, the pattern points from the entire subtree are merged first.
+    /// Higher compactness means the pattern occupies a relatively dense region.
+    ///
+    /// # Arguments
+    /// * `points` - The full dataset points (as a `HashSet`), used to count points inside the bounding box.
+    ///
+    /// # Returns
+    /// A value in `[0, 1]`. Returns `0.0` if the pattern is empty or the bounding box contains no points.
     pub fn compactness(&self, points: &HashSet<(u32, u32)>) -> f64 {
         let pattern_set = self.coverage();
         if pattern_set.is_empty() {
@@ -119,6 +164,7 @@ impl TranslationalEquivalence {
         }
     }
 
+    /// Returns a human‑readable summary of the TEC, optionally with indentation.
     pub fn summary(&self, indent: usize) -> String {
         let mut lines: Vec<String> = Vec::new();
         let spaces = " ".repeat(indent);
@@ -237,7 +283,7 @@ impl Ord for SortKey {
 /// * `dataset_points` - The set of points in the dataset (used for compactness calculation).
 ///
 /// # Returns
-/// A `SortKey` where lower key indicates a better TEC.
+/// A `SortKey` where `key1 < key2` means TEC1 is better than TEC2.
 pub fn tec_sort_key(tec: &TranslationalEquivalence, dataset_points: &HashSet<(u32, u32)>) -> SortKey {
     let cr = tec.compression_ratio();
     let comp = tec.compactness(dataset_points);

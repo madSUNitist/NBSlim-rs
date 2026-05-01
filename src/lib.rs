@@ -1,3 +1,31 @@
+//! # NBSlim – Geometric compression algorithms for 2D point sets
+//!
+//! This crate implements SIA, SIATEC, COSIATEC, and RecurSIA – algorithms that discover
+//! translational equivalence classes (TECs) in planar point sets. It is designed primarily
+//! for compressing Note Block Studio (`.nbs`) music files but works on any set of points
+//! in the plane.
+//!
+//! # Algorithms
+//!
+//! - **SIA** – finds all maximal translatable patterns from a point set.
+//! - **SIATEC** – builds translational equivalence classes from SIA results.
+//! - **COSIATEC** – greedy lossless compression: repeatedly extracts the best TEC and
+//!   removes its covered points.
+//! - **RecurSIA** – recursive version of COSIATEC that compresses patterns of each TEC
+//!   to capture nested repetitions.
+//!
+//! # Examples
+//!
+//! Basic compression:
+//!
+//! ```
+//! use nbslim::cosiatec_compress;
+//!
+//! let points = vec![(0, 100), (1, 200), (2, 100), (3, 200)];
+//! let tecs = cosiatec_compress(&points, true);
+//! assert!(tecs.len() > 0);
+//! ```
+
 mod sia;
 mod tec;
 mod siatec;
@@ -6,9 +34,7 @@ mod recursia;
 
 pub mod utils;
 
-
 pub use tec::TranslationalEquivalence;
-
 pub use sia::find_mtps;
 pub use siatec::build_tecs_from_mtps;
 pub use cosiatec::cosiatec_compress;

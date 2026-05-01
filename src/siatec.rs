@@ -1,3 +1,5 @@
+//! SIATEC – builds translational equivalence classes (TECs) from SIA patterns.
+
 use std::collections::HashSet;
 
 use crate::sia::find_mtps;
@@ -8,7 +10,7 @@ use crate::tec::TranslationalEquivalence;
 ///
 /// For each MTP (represented by a translation vector `v` and its pattern `P`), this function
 /// determines all translation vectors `w` such that `P + w` is entirely contained in the dataset.
-/// These `w`s become the TEC's translator set. The TEC is then stored as `⟨P, translators⟩`.
+/// These `w`s become the TEC’s translator set. The TEC is then stored as `⟨P, translators⟩`.
 ///
 /// # Arguments
 /// * `dataset` - A reference to the vector of points `(tick, pitch)`.
@@ -21,11 +23,19 @@ use crate::tec::TranslationalEquivalence;
 /// are omitted.
 ///
 /// # Algorithmic notes
-/// - For each MTP pattern `P`, the candidate translators are all vectors from the first pattern
-///   point `p0` to any point in the dataset. Only those that map the whole `P` into the dataset
-///   are kept.
+/// - For each MTP pattern `P`, candidate translators are all vectors from the first pattern point
+///   `p0` to any point in the dataset. Only those that map the whole `P` into the dataset are kept.
 /// - Complexity: `O(m · n)` where `m` is the number of MTPs and `n` is the dataset size.
 ///   In the worst case `m = O(n²)`.
+///
+/// # Examples
+/// ```
+/// use nbslim::build_tecs_from_mtps;
+///
+/// let points = vec![(0, 0), (1, 0), (2, 0), (3, 0)];
+/// let tecs = build_tecs_from_mtps(&points, false);
+/// // The pattern [0,0] and [1,0] may form a TEC with translator (1,0).
+/// ```
 pub fn build_tecs_from_mtps(dataset: &Vec<(u32, u32)>, restrict_dpitch_zero: bool) -> Vec<TranslationalEquivalence> {
     // Store dataset as i64 HashSet for easy containment checks
     let points_set: HashSet<(u32, u32)> = dataset.iter().copied().collect();

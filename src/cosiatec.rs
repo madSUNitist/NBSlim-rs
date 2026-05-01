@@ -1,3 +1,5 @@
+//! COSIATEC: greedy iterative compression using translational equivalence classes (TECs).
+
 use std::collections::HashSet;
 
 use crate::siatec::build_tecs_from_mtps;
@@ -6,11 +8,11 @@ use crate::tec::{TranslationalEquivalence, tec_sort_key};
 /// COSIATEC: a greedy, iterative compression algorithm based on translational equivalence classes (TECs).
 ///
 /// The algorithm repeatedly runs SIATEC on the **remaining uncovered points**, selects the
-/// “best” TEC according to the multi-level comparison rules (compression ratio, compactness,
+/// “best” TEC according to the multi‑level comparison rules (compression ratio, compactness,
 /// coverage size, pattern size, temporal width, bounding box area), adds it to the result list,
 /// and removes its covered points from the remaining set. This process continues until all
 /// points are covered. When no pattern can be found, the remaining points are encoded as
-/// trivial single-point TECs (empty translator set).
+/// trivial single‑point TECs (empty translator set).
 ///
 /// # Arguments
 /// * `dataset` - A reference to the full set of points `(tick, pitch)`. The algorithm works on
@@ -33,6 +35,17 @@ use crate::tec::{TranslationalEquivalence, tec_sort_key};
 /// iteration (`n` = size of remaining set). The total number of iterations is at most the
 /// number of points. Practical performance is acceptable for typical music datasets (up to a
 /// few thousand points).
+///
+/// # Examples
+/// ```
+/// use nbslim::cosiatec_compress;
+///
+/// let points = vec![(0, 10), (1, 20), (2, 10), (3, 20)];
+/// let tecs = cosiatec_compress(&points, true);
+/// for tec in tecs {
+///     println!("{}", tec.coverage().len());
+/// }
+/// ```
 pub fn cosiatec_compress(
     dataset: &Vec<(u32, u32)>,
     restrict_dpitch_zero: bool,
