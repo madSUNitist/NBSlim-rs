@@ -1,5 +1,3 @@
-English | [简体中文](README.zh.md)
-
 # NBSlim
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -12,12 +10,10 @@ This crate is the core algorithm implementation extracted from the [NBSlim](http
 
 ## Algorithms
 
-- **SIA** – finds all maximal translatable patterns from a point set.
-- **SIATEC** – builds translational equivalence classes from SIA results.
+- **SIA** – finds all maximal translatable patterns from a point set (`O(n²)`).
+- **SIATEC** – builds translational equivalence classes from SIA results (`O(m·n)`, worst-case `O(n³)`).
 - **COSIATEC** – greedy lossless compression: repeatedly extract the best TEC (highest compression ratio) and remove its covered points.
 - **RecurSIA** – recursive version of COSIATEC that compresses patterns of each TEC, capturing nested repetitions.
-
-All algorithms are implemented with `O(n²)` time complexity and use online HashMap aggregation to avoid storing all point pairs, making them memory efficient for large inputs.
 
 ## Installation
 
@@ -25,7 +21,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-nbslim = "0.1.2"
+nbslim = "0.1.3"
 ```
 
 ## Usage
@@ -33,10 +29,12 @@ nbslim = "0.1.2"
 ### Basic compression with COSIATEC
 
 ```rust
-use nbslim::{cosiatec_compress, TranslationalEquivalence};
+use nbslim::cosiatec_compress;
 
 let points = vec![(0, 100), (1, 200), (2, 100), (3, 200)];
-let tecs = cosiatec_compress(&points, true);  // restrict_dpitch_zero = true
+// restrict_dpitch_zero: only horizontal translations (Δtick, 0)
+// sweepline_optimization: use faster sweepline exact matching (default true)
+let tecs = cosiatec_compress(&points, true, true);
 for tec in &tecs {
     println!("{}", tec.summary(0));
 }
@@ -47,13 +45,15 @@ for tec in &tecs {
 ```rust
 use nbslim::recursive_cosiatec_compress;
 
-let tecs = recursive_cosiatec_compress(&points, true, 2);
+let tecs = recursive_cosiatec_compress(&points, true, 2, true);
+// Patterns smaller than 2 points are not recursed.
 ```
 
 ### Working with TECs
 
 ```rust
 use std::collections::HashSet;
+use nbslim::TranslationalEquivalence;
 
 // Coverage set (all points that belong to any occurrence of this TEC)
 let coverage: HashSet<(u32, u32)> = tec.coverage();
@@ -66,22 +66,30 @@ let dataset_points: HashSet<(u32, u32)> = points.iter().copied().collect();
 let compactness = tec.compactness(&dataset_points);
 ```
 
-### Reconstructing original points from a list of TECs
+### Reconstructing original points from TECs
 
 ```rust
-use nbslim::rebuild;
+use std::collections::HashSet;
 
-let original_points = rebuild(&tecs);
-assert_eq!(original_points, points);
+let mut all_points = HashSet::new();
+for tec in &tecs {
+    all_points.extend(tec.coverage());
+}
+let mut reconstructed: Vec<(u32, u32)> = all_points.into_iter().collect();
+reconstructed.sort();
+assert_eq!(reconstructed, points);
 ```
 
-### Merge small TECs
+### Merge small TECs (using a static predicate)
 
 ```rust
 use nbslim::merge_tecs;
 
-// Merge all TECs with coverage size <= 10 into a single TEC
-let merged = merge_tecs(tecs, |t| t.coverage().len() <= 10);
+fn is_small(tec: &TranslationalEquivalence) -> bool {
+    tec.coverage().len() <= 10
+}
+
+let merged = merge_tecs(tecs, is_small);
 ```
 
 ### Compression statistics
@@ -92,6 +100,19 @@ use nbslim::compression_stats;
 let (original_count, encoded_units, ratio) = compression_stats(&tecs, &points);
 println!("Original: {}, Encoded units: {}, Ratio: {:.2}", original_count, encoded_units, ratio);
 ```
+
+### Building TECs directly from SIA patterns
+
+```rust
+use nbslim::{build_tecs_from_mtps, find_mtps};
+
+let mtps = find_mtps(&points, false);
+let tecs = build_tecs_from_mtps(&points, false);
+```
+
+## NBS file integration (optional)
+
+The crate includes `utils::notes_to_points` and `utils::points_to_notes` to convert between NBS note events and the 2D point representation used by the algorithms, packing instrument and pitch into a single coordinate. See the [documentation](https://docs.rs/nbslim) for details.
 
 ## References
 
