@@ -23,6 +23,7 @@ use crate::tec::TranslationalEquivalence;
 /// * `min_pattern_size` - Minimum number of points a pattern must contain to
 ///   be considered for recursion. Patterns smaller than this are left unchanged
 ///   (their `sub_tecs` remains empty).
+/// * `sweepline_optimization` - Whether to use the sweepline optimized implementation.
 ///
 /// # Returns
 /// A vector of top‑level `TranslationalEquivalence` objects. Each TEC may have
@@ -34,16 +35,21 @@ use crate::tec::TranslationalEquivalence;
 /// use nbslim::recursive_cosiatec_compress;
 ///
 /// let points = vec![(0, 0), (1, 1), (2, 0), (3, 1)];
-/// let tecs = recursive_cosiatec_compress(&points, true, 2);
+/// let tecs = recursive_cosiatec_compress(&points, true, 2, true);
 /// // Some TECs may have non‑empty sub_tecs.
 /// ```
 pub fn recursive_cosiatec_compress(
     dataset: &Vec<(u32, u32)>,
     restrict_dpitch_zero: bool,
     min_pattern_size: usize,
+    sweepline_optimization: bool
 ) -> Vec<TranslationalEquivalence> {
     // 1. Obtain the top‑level COSIATEC cover (without recursion)
-    let mut tecs = cosiatec_compress(dataset, restrict_dpitch_zero);
+    let mut tecs = cosiatec_compress(
+        dataset, 
+        restrict_dpitch_zero, 
+        sweepline_optimization
+    );
 
     // 2. Recursively compress the pattern of each TEC
     for tec in &mut tecs {
@@ -51,7 +57,8 @@ pub fn recursive_cosiatec_compress(
             tec.sub_tecs = recursive_cosiatec_compress(
                 &tec.pattern, 
                 restrict_dpitch_zero, 
-                min_pattern_size
+                min_pattern_size, 
+                sweepline_optimization
             );
             tec.pattern.clear();
         } else {

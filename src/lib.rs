@@ -22,7 +22,7 @@
 //! use nbslim::cosiatec_compress;
 //!
 //! let points = vec![(0, 100), (1, 200), (2, 100), (3, 200)];
-//! let tecs = cosiatec_compress(&points, true);
+//! let tecs = cosiatec_compress(&points, true, true);
 //! assert!(tecs.len() > 0);
 //! ```
 
@@ -31,6 +31,7 @@ mod tec;
 mod siatec;
 mod cosiatec;
 mod recursia;
+mod sweepline;
 
 pub mod utils;
 
@@ -39,6 +40,7 @@ pub use sia::find_mtps;
 pub use siatec::build_tecs_from_mtps;
 pub use cosiatec::cosiatec_compress;
 pub use recursia::recursive_cosiatec_compress;
+pub use sweepline::build_tecs_from_mtps as build_tecs_from_mtps_sweepline;
 
 
 #[cfg(test)]
@@ -81,7 +83,7 @@ mod test {
         let (points, mapping) = notes_to_points(&notes);
         assert_eq!(points, data);
 
-        let tecs = recursive_cosiatec_compress(&data, true, 2);
+        let tecs = recursive_cosiatec_compress(&data, true, 2, true);
         assert!(compression_stats(&tecs, &data).2 > 1.0);
 
         let rebuilt = points_to_notes(&tecs, &mapping);
@@ -99,7 +101,7 @@ mod test {
         let (points, mapping) = notes_to_points(&notes);
         assert_eq!(points, data);
 
-        let tecs = cosiatec_compress(&data, true);
+        let tecs = cosiatec_compress(&data, true, true);
         assert!(compression_stats(&tecs, &data).2 > 1.0);
 
         let rebuilt = points_to_notes(&tecs, &mapping);
