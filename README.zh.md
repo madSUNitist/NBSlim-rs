@@ -21,7 +21,7 @@ Rust 实现的 SIA、SIATEC、COSIATEC 和 RecurSIA 算法，用于通过发现*
 
 ```toml
 [dependencies]
-nbslim = "0.1.2"
+nbslim = "0.1.3"
 ```
 
 ## Usage
