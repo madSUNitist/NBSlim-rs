@@ -21,7 +21,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-nbslim = "0.1.4"
+nbslim = "0.1.5"
 ```
 
 ## Usage
