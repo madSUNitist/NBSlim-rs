@@ -17,7 +17,7 @@ homepage = "https://github.com/madSUNitist/NBSlim-rs#readme"
 readme = "README.md"
 authors = ["madSUNitist"]
 keywords = [
-    "point-set pattern discovery",
+    "pattern discovery",
     "music compression",
     "Note Block Studio",
     "Minecraft"
