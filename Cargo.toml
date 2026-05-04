@@ -16,6 +16,15 @@ documentation = "https://docs.rs/nbslim"
 homepage = "https://github.com/madSUNitist/NBSlim-rs#readme"
 readme = "README.md"
 authors = ["madSUNitist"]
+keywords = [
+    "SIA", "SIATEC", "COSIATEC", "RecurSIA",
+    "Maximal Translatable Patterns",
+    "Translational Equivalence Classes",
+    "point-set pattern discovery",
+    "music compression",
+    "Note Block Studio",
+    "Minecraft"
+]
 
 [lib]
 name = "nbslim"
