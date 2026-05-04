@@ -17,10 +17,17 @@ homepage = "https://github.com/madSUNitist/NBSlim-rs#readme"
 readme = "README.md"
 authors = ["madSUNitist"]
 keywords = [
-    "pattern discovery",
-    "music compression",
+    "pattern-discovery",
+    "music-compression",
+    "repetition-detection", 
     "Note Block Studio",
     "Minecraft"
+]
+categories = [
+    "compression", 
+    "multimedia::audio", 
+    "algorithms", 
+    "games"
 ]
 
 [lib]
